@@ -2,8 +2,10 @@ name: Robot Sorteos Florida Backup
 
 on:
   schedule:
-    # 18:20 UTC (2:20 PM ET) y 02:20 UTC (10:20 PM ET)
-    - cron: '20 18,2 * * *'
+    # 19:10 UTC (3:10 PM Cuba / 2:10 PM Florida) - 20 min después del principal
+    - cron: '10 19 * * *'
+    # 03:25 UTC (11:25 PM Cuba / 10:25 PM Florida) - 20 min después del principal
+    - cron: '25 3 * * *'
   workflow_dispatch:
 
 jobs:
@@ -23,10 +25,14 @@ jobs:
         with:
           python-version: '3.10'
 
+      - name: Instalar dependencias de Python
+        run: pip install requests beautifulsoup4 pandas lxml
+
       - name: Limpiar archivos viejos
         run: |
           rm -f p3_output.txt p4_output.txt
 
+      # 1. Intento con la herramienta fl-lotto
       - name: Ejecutar Scraper (fl-lotto)
         run: |
           npx fl-lotto -g p3 > p3_output.txt
@@ -37,10 +43,14 @@ jobs:
       - name: Convertir a JSON
         run: python scraper.py
 
+      # 2. Respaldo Web (LotteryUSA) por si fl-lotto falló o dio 00
+      - name: Buscar en Web de Respaldo
+        run: python respaldo_web.py
+
       - name: Guardar cambios (Commit)
         run: |
           git config --global user.name 'Robot Florida'
           git config --global user.email 'robot@github.com'
           git add .
-          git commit -m "Actualizacion automatica" || exit 0
+          git commit -m "Actualizacion de respaldo automatica" || exit 0
           git push
